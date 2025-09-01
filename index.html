@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora NUTRI+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bibliotecas para exportação de imagem e PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .bg-primary { background-color: #053545; }
+        .bg-secondary { background-color: #153828; }
+        .text-primary { color: #053545; }
+        .text-secondary { color: #153828; }
+        .border-primary { border-color: #053545; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none; }
+        }
+        .result-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        #notification {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%); padding: 12px 24px;
+            border-radius: 8px; color: white; font-weight: 500;
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        #notification.show { opacity: 1; visibility: visible; }
+        textarea { resize: vertical; }
+        #figure-image {
+            max-width: 100%; max-height: 384px; /* h-96 */
+            object-fit: contain;
+        }
+        .adequacy-low { background-color: #fef2f2; }
+        .adequacy-good { background-color: #f0fdf4; }
+        .adequacy-high { background-color: #fffbeb; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-primary">Calculadora NUTRI+</h1>
+            <p class="text-gray-600 mt-2">Avaliação e Planejamento Dietético Completo.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Coluna de Inserção de Dados -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        Informações do Paciente
+                    </h2>
+                    <form id="patient-form" class="space-y-4">
+                        <input type="hidden" id="patient-id">
+                        <input type="text" id="nome" placeholder="Nome completo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <select id="sexo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                            </select>
+                            <input type="number" id="idade" placeholder="Idade (anos)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" step="0.01" id="peso" placeholder="Peso (kg)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                            <input type="number" step="0.01" id="altura" placeholder="Altura (m)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                        </div>
+                        
+                        <input type="number" id="circunferencia_abdominal" placeholder="Circ. Abdominal (cm)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="dct" placeholder="DCT (mm)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent" title="Dobra Cutânea do Tríceps">
+                            <input type="number" id="dcb" placeholder="DCB (mm)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent" title="Dobra Cutânea do Bíceps">
+                        </div>
+
+                        <input type="number" id="perimetro_braco" placeholder="Perímetro Braço (cm)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Objetivo (VET):</label>
+                            <select id="vet-goal" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                                <option value="manter">Manter Peso</option>
+                                <option value="perder">Perder Peso</option>
+                                <option value="ganhar">Ganhar Peso</option>
+                            </select>
+                        </div>
+
+                        <button type="button" id="calculate-btn" class="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-colors">
+                            Calcular e Gerar Relatório
+                        </button>
+                        <button type="button" id="save-patient-btn" class="w-full bg-secondary text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-colors mt-2">
+                            Salvar Paciente
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Gerenciar Pacientes
+                    </h2>
+                    <div class="space-y-4">
+                        <select id="patient-list" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent">
+                            <option value="">Selecione um paciente</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button type="button" id="load-patient-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors">Carregar</button>
+                            <button type="button" id="delete-patient-btn" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 transition-colors">Deletar</button>
+                        </div>
+                         <button type="button" id="new-patient-btn" class="w-full border-2 border-primary text-primary font-bold py-3 px-4 rounded-lg hover:bg-primary hover:text-white transition-colors mt-2">
+                            Novo Paciente
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna de Resultados -->
+            <div id="results-container" class="lg:col-span-2 hidden">
+                <div id="printable-area">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <!-- Cabeçalho do Relatório -->
+                        <div class="flex justify-between items-start">
+                             <div>
+                                <h2 class="text-2xl font-semibold text-secondary mb-4">Relatório Nutricional</h2>
+                                <p class="text-lg font-medium text-primary mb-6" id="report-name">Paciente: </p>
+                             </div>
+                             <h1 class="text-2xl font-bold text-primary">NUTRI+</h1>
+                        </div>
+                        
+                        <!-- Cards de Avaliação -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="result-card border-l-4 border-orange-400">
+                                <h3 class="font-semibold text-gray-800">IMC</h3>
+                                <p class="text-3xl font-bold text-primary" id="imc-value">-</p>
+                                <p class="font-medium text-gray-600" id="imc-class">-</p>
+                                <p class="text-sm text-gray-500 mt-2">Peso Ideal: <span id="ideal-weight">-</span></p>
+                            </div>
+                            <div id="percentile-card" class="result-card border-l-4 border-teal-400 hidden">
+                                <h3 class="font-semibold text-gray-800">Percentil IMC (OMS)</h3>
+                                <p class="text-3xl font-bold text-primary" id="percentile-value">-</p>
+                                <p class="font-medium text-gray-600" id="percentile-class">-</p>
+                            </div>
+                            <div class="result-card border-l-4 border-red-400">
+                                <h3 class="font-semibold text-gray-800">Risco (Circ. Abd.)</h3>
+                                <p class="text-3xl font-bold text-primary" id="rcq-value">- cm</p>
+                                <p class="font-medium text-gray-600" id="rcq-class">-</p>
+                            </div>
+                             <div class="result-card border-l-4 border-yellow-400">
+                                <h3 class="font-semibold text-gray-800">% de Gordura</h3>
+                                <p class="text-3xl font-bold text-primary" id="fat-percentage">-</p>
+                                <p class="font-medium text-gray-600">Gallagher et al.</p>
+                            </div>
+                            <div class="result-card border-l-4 border-green-400">
+                                <h3 class="font-semibold text-gray-800">VET</h3>
+                                <p class="text-3xl font-bold text-primary" id="vet-value">-</p>
+                                <p class="font-medium text-gray-600" id="vet-goal-text">Manter Peso</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumo Visual e Laboratorial -->
+                        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-1 flex flex-col justify-center items-center">
+                                <div id="figure-container" class="relative w-full h-96 flex items-center justify-center">
+                                    <img id="figure-image" src="https://placehold.co/300x400/e0e0e0/555?text=?" alt="Visualização Corporal">
+                                </div>
+                                <p class="text-center font-semibold text-gray-700 mt-2" id="figure-caption">Visualização Corporal</p>
+                            </div>
+                            <div class="md:col-span-2 result-card border-l-4 border-purple-400">
+                                <h3 class="font-semibold text-gray-800">Avaliação Laboratorial</h3>
+                                <div class="space-y-3 mt-4">
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" id="lab-name" list="lab-suggestions" placeholder="Exame (ex: Glicose)" class="flex-grow p-2 border rounded-md">
+                                        <datalist id="lab-suggestions">
+                                            <option value="Glicose"><option value="Colesterol Total"><option value="Triglicerídeos"><option value="HDL"><option value="LDL">
+                                        </datalist>
+                                        <input type="number" id="lab-value" placeholder="Valor" class="w-24 p-2 border rounded-md">
+                                        <button type="button" id="add-lab-btn" class="bg-secondary text-white px-3 py-2 rounded-md hover:bg-opacity-90">+</button>
+                                    </div>
+                                    <div id="lab-results" class="space-y-3 text-gray-700 text-sm"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seção de Plano Alimentar Avançado -->
+                    <div id="diet-plan-section" class="bg-white p-6 rounded-xl shadow-lg mt-8">
+                        <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3">Plano Alimentar Detalhado</h2>
+                        <div id="meals-container" class="space-y-8">
+                            <!-- Templates das refeições serão inseridos aqui -->
+                        </div>
+                        <div class="mt-8">
+                             <h3 class="text-xl font-semibold text-secondary mb-4 border-b pb-2">Resumo e Adequação Nutricional</h3>
+                             <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="p-2">Nutriente</th>
+                                            <th class="p-2">Total no Plano</th>
+                                            <th class="p-2">Recomendado (DRI)</th>
+                                            <th class="p-2">% Adequação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="diet-summary-table">
+                                        <!-- Linhas do resumo serão inseridas aqui -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4 no-print">
+                    <button id="print-btn" class="flex items-center justify-center gap-2 bg-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors">Imprimir</button>
+                    <button id="whatsapp-btn" class="flex items-center justify-center gap-2 bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-colors">Gerar PDF para WhatsApp</button>
+                    <button id="export-jpeg-btn" class="flex items-center justify-center gap-2 bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors">Exportar JPEG</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-12 py-4 border-t">
+            <p class="text-gray-500 text-sm">Desenvolvido por Marcos R Teixeira</p>
+        </footer>
+    </div>
+    
+    <div id="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- BANCO DE DADOS (AMOSTRA) ---
+            const foodDatabase = {
+                'Arroz (polido, parboilizado)': { energia_kcal: 128, proteina_g: 2.6, lipideos_g: 0.2, carboidrato_g: 28.1, fibra_g: 1.6, calcio_mg: 4, magnesio_mg: 11, fosforo_mg: 34, ferro_mg: 0.1, sodio_mg: 1, potassio_mg: 30, zinco_mg: 0.2 },
+                'Feijão (carioca, cozido)': { energia_kcal: 76, proteina_g: 5.1, lipideos_g: 0.5, carboidrato_g: 13.6, fibra_g: 7.5, calcio_mg: 27, magnesio_mg: 21, fosforo_mg: 57, ferro_mg: 0.7, sodio_mg: 2, potassio_mg: 137, zinco_mg: 0.4 },
+                'Frango (filé, grelhado)': { energia_kcal: 159, proteina_g: 32, lipideos_g: 3, carboidrato_g: 0, fibra_g: 0, calcio_mg: 4, magnesio_mg: 27, fosforo_mg: 247, ferro_mg: 0.4, sodio_mg: 40, potassio_mg: 395, zinco_mg: 0.6 },
+                'Batata (doce, cozida)': { energia_kcal: 77, proteina_g: 0.6, lipideos_g: 0.1, carboidrato_g: 18.4, fibra_g: 2.2, calcio_mg: 13, magnesio_mg: 11, fosforo_mg: 19, ferro_mg: 0.2, sodio_mg: 25, potassio_mg: 172, zinco_mg: 0.1 },
+                'Ovo (de galinha, cozido)': { energia_kcal: 146, proteina_g: 12.1, lipideos_g: 10.2, carboidrato_g: 0.6, fibra_g: 0, calcio_mg: 54, magnesio_mg: 11, fosforo_mg: 210, ferro_mg: 1.8, sodio_mg: 138, potassio_mg: 147, zinco_mg: 1.4 },
+                'Banana (prata)': { energia_kcal: 98, proteina_g: 1.3, lipideos_g: 0.1, carboidrato_g: 26, fibra_g: 2, calcio_mg: 8, magnesio_mg: 28, fosforo_mg: 27, ferro_mg: 0.4, sodio_mg: 1, potassio_mg: 358, zinco_mg: 0.1 },
+                'Azeite de oliva (extra virgem)': { energia_kcal: 884, proteina_g: 0, lipideos_g: 100, carboidrato_g: 0, fibra_g: 0, calcio_mg: 1, magnesio_mg: 0, fosforo_mg: 0, ferro_mg: 0.6, sodio_mg: 2, potassio_mg: 1, zinco_mg: 0 },
+                'Maçã (fuji)': { energia_kcal: 56, proteina_g: 0.3, lipideos_g: 0, carboidrato_g: 15.2, fibra_g: 1.3, calcio_mg: 4, magnesio_mg: 4, fosforo_mg: 9, ferro_mg: 0.1, sodio_mg: 1, potassio_mg: 116, zinco_mg: 0 },
+                'Leite (integral)': { energia_kcal: 60, proteina_g: 3.2, lipideos_g: 3.3, carboidrato_g: 4.8, fibra_g: 0, calcio_mg: 123, magnesio_mg: 12, fosforo_mg: 96, ferro_mg: 0, sodio_mg: 49, potassio_mg: 156, zinco_mg: 0.4 },
+                'Pão (francês)': { energia_kcal: 289, proteina_g: 8, lipideos_g: 3.9, carboidrato_g: 58.6, fibra_g: 2.3, calcio_mg: 18, magnesio_mg: 23, fosforo_mg: 87, ferro_mg: 0.9, sodio_mg: 585, potassio_mg: 100, zinco_mg: 0.6 },
+                'Alface (crespa)': { energia_kcal: 11, proteina_g: 1.3, lipideos_g: 0.2, carboidrato_g: 1.7, fibra_g: 1.8, calcio_mg: 38, magnesio_mg: 10, fosforo_mg: 25, ferro_mg: 0.4, sodio_mg: 4, potassio_mg: 233, zinco_mg: 0.2 },
+                'Tomate': { energia_kcal: 15, proteina_g: 1.1, lipideos_g: 0.2, carboidrato_g: 3.1, fibra_g: 1.2, calcio_mg: 6, magnesio_mg: 10, fosforo_mg: 27, ferro_mg: 0.4, sodio_mg: 1, potassio_mg: 196, zinco_mg: 0.2 },
+            };
+
+            const measuresDatabase = {
+                'Arroz (polido, parboilizado)': { 'Colher de sopa': 25, 'Xícara de chá': 180 },
+                'Feijão (carioca, cozido)': { 'Concha média': 90, 'Colher de sopa': 25 },
+                'Frango (filé, grelhado)': { 'Unidade pequena': 100, 'Unidade média': 150 },
+                'Batata (doce, cozida)': { 'Unidade pequena': 100, 'Fatia': 30 },
+                'Ovo (de galinha, cozido)': { 'Unidade': 50 },
+                'Banana (prata)': { 'Unidade': 90 },
+                'Azeite de oliva (extra virgem)': { 'Colher de sopa': 8, 'Colher de chá': 3 },
+                'Maçã (fuji)': { 'Unidade pequena': 130 },
+                'Leite (integral)': { 'Copo americano': 200, 'Xícara de chá': 240 },
+                'Pão (francês)': { 'Unidade': 50 },
+                'Alface (crespa)': { 'Folha': 5, 'Pires': 20 },
+                'Tomate': { 'Unidade pequena': 90, 'Fatia': 15 },
+            };
+            
+            const driDatabase = {
+                default: { proteina_g: 56, fibra_g: 38, calcio_mg: 1000, magnesio_mg: 400, fosforo_mg: 700, ferro_mg: 8, sodio_mg: 1500, potassio_mg: 4700, zinco_mg: 11 },
+            };
+
+            const labSuggestions = {
+                glicose: {
+                    high: "Glicose elevada. Sugestão: Reduzir o consumo de açúcares, doces e carboidratos refinados (pão branco, massas). Aumentar a ingestão de fibras (vegetais, grãos integrais, sementes) e proteínas magras.",
+                    low: "Glicose baixa. Sugestão: Fracionar as refeições ao longo do dia, incluindo fontes de carboidratos complexos (batata doce, aveia) e evitar longos períodos de jejum."
+                },
+                hdl: {
+                    low: "HDL (colesterol 'bom') baixo. Sugestão: Aumentar o consumo de gorduras monoinsaturadas (azeite, abacate, castanhas) e poli-insaturadas (peixes como salmão e sardinha, linhaça, chia)."
+                },
+                ldl: {
+                    high: "LDL (colesterol 'ruim') elevado. Sugestão: Reduzir gorduras saturadas (carnes gordas, laticínios integrais) e gorduras trans (frituras, industrializados). Aumentar fibras solúveis (aveia, maçã, feijão)."
+                },
+                triglicerídeos: {
+                    high: "Triglicerídeos elevados. Sugestão: Limitar fortemente o consumo de álcool, açúcares e farinhas brancas. Priorizar carboidratos complexos e aumentar a ingestão de ômega-3 (peixes, nozes, linhaça)."
+                }
+            };
+            
+            const images = {
+                masculino: {
+                    magreza: 'https://placehold.co/300x400/e2e8f0/4a5568?text=Magreza', normal: 'https://placehold.co/300x400/e2e8f0/4a5568?text=Normal',
+                    sobrepeso: 'https://placehold.co/300x400/e2e8f0/4a5568?text=Sobrepeso', obesidade: 'https://placehold.co/300x400/e2e8f0/4a5568?text=Obesidade'
+                },
+                feminino: {
+                    magreza: 'https://placehold.co/300x400/f7fafc/4a5568?text=Magreza', normal: 'https://placehold.co/300x400/f7fafc/4a5568?text=Normal',
+                    sobrepeso: 'https://placehold.co/300x400/f7fafc/4a5568?text=Sobrepeso', obesidade: 'https://placehold.co/300x400/f7fafc/4a5568?text=Obesidade'
+                }
+            };
+
+            const percentileData = {
+                boys: [ { age: 5, p3: 13.4, p15: 14.2, p50: 15.3, p85: 16.9, p97: 18.6 }, { age: 10, p3: 14.4, p15: 15.4, p50: 17.0, p85: 19.6, p97: 22.5 }, { age: 15, p3: 16.5, p15: 17.9, p50: 20.0, p85: 23.4, p97: 26.8 }, { age: 19, p3: 18.4, p15: 19.9, p50: 22.4, p85: 26.5, p97: 30.5 } ],
+                girls: [ { age: 5, p3: 13.2, p15: 14.0, p50: 15.2, p85: 17.0, p97: 19.0 }, { age: 10, p3: 14.2, p15: 15.3, p50: 17.2, p85: 20.3, p97: 24.0 }, { age: 15, p3: 16.3, p15: 17.8, p50: 20.2, p85: 24.0, p97: 28.2 }, { age: 19, p3: 17.6, p15: 19.1, p50: 21.8, p85: 26.3, p97: 31.2 } ]
+            };
+
+            // --- Seletores e Funções Auxiliares ---
+            const form = document.getElementById('patient-form');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const savePatientBtn = document.getElementById('save-patient-btn');
+            const loadPatientBtn = document.getElementById('load-patient-btn');
+            const deletePatientBtn = document.getElementById('delete-patient-btn');
+            const newPatientBtn = document.getElementById('new-patient-btn');
+            const patientListSelect = document.getElementById('patient-list');
+            const resultsContainer = document.getElementById('results-container');
+            const notification = document.getElementById('notification');
+            const percentileCard = document.getElementById('percentile-card');
+            
+            const getVal = id => document.getElementById(id)?.value ?? '';
+            const getNum = id => parseFloat(document.getElementById(id)?.value) || 0;
+            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
+            const setHtml = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = val; };
+            
+            const showNotification = (message, isSuccess = true) => {
+                notification.textContent = message;
+                notification.className = isSuccess ? 'bg-green-500' : 'bg-red-500';
+                notification.classList.add('show');
+                setTimeout(() => notification.classList.remove('show'), 3000);
+            };
+
+            // --- Lógica do Plano Alimentar ---
+            const meals = ['Desjejum', 'Colação', 'Almoço', 'Lanche', 'Jantar', 'Ceia'];
+            const mealsContainer = document.getElementById('meals-container');
+            const foodDatalist = document.createElement('datalist');
+            foodDatalist.id = 'food-list';
+            Object.keys(foodDatabase).forEach(food => {
+                foodDatalist.innerHTML += `<option value="${food}">`;
+            });
+            document.body.appendChild(foodDatalist);
+            
+            meals.forEach(mealName => {
+                const mealId = mealName.toLowerCase().replace('ç', 'c');
+                mealsContainer.innerHTML += `
+                    <div id="meal-${mealId}">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xl font-semibold text-secondary">${mealName}</h3>
+                            <button type="button" class="add-food-btn bg-secondary text-white px-3 py-1 rounded-md text-sm" data-meal="${mealId}">+ Adicionar Alimento</button>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50"><tr>
+                                <th class="p-2 text-left">Alimento</th><th class="p-2 text-left">Qtd</th>
+                                <th class="p-2 text-left">Medida</th><th class="p-2 text-left">Gramas</th>
+                                <th class="p-2"></th>
+                            </tr></thead>
+                            <tbody id="tbody-${mealId}"></tbody>
+                        </table>
+                    </div>
+                `;
+            });
+            
+            mealsContainer.addEventListener('click', e => {
+                if (e.target.classList.contains('add-food-btn')) {
+                    addFoodRow(e.target.dataset.meal);
+                } else if (e.target.classList.contains('remove-food-btn')) {
+                    e.target.closest('tr').remove();
+                    updateDietCalculations();
+                }
+            });
+
+            mealsContainer.addEventListener('input', e => {
+                 const row = e.target.closest('tr');
+                 if (!row) return;
+                 if (e.target.classList.contains('qty-input') || e.target.classList.contains('measure-select')) {
+                     updateGrams(row);
+                 }
+            });
+             mealsContainer.addEventListener('change', e => {
+                 const row = e.target.closest('tr');
+                 if (!row) return;
+                 if (e.target.classList.contains('food-input')) {
+                     updateMeasures(row);
+                 }
+            });
+
+
+            const addFoodRow = (mealId, foodData = { food: '', qty: 1, measure: 'g', grams: 0 }) => {
+                const tbody = document.getElementById(`tbody-${mealId}`);
+                const row = tbody.insertRow();
+                row.className = 'diet-row';
+                row.innerHTML = `
+                    <td class="p-1"><input type="text" list="food-list" class="food-input w-full p-1 border rounded" value="${foodData.food}"></td>
+                    <td class="p-1"><input type="number" class="qty-input w-16 p-1 border rounded" value="${foodData.qty}" min="0"></td>
+                    <td class="p-1"><select class="measure-select w-full p-1 border rounded"></select></td>
+                    <td class="p-1"><input type="number" class="grams-input w-20 p-1 border rounded bg-gray-100" value="${foodData.grams}" readonly></td>
+                    <td class="p-1 text-center"><button type="button" class="remove-food-btn text-red-500">✖</button></td>
+                `;
+                if (foodData.food) {
+                    updateMeasures(row, foodData.measure);
+                } else {
+                    updateMeasures(row);
+                }
+            };
+            
+            const updateMeasures = (row, selectedMeasure = 'g') => {
+                const foodName = row.querySelector('.food-input').value;
+                const measureSelect = row.querySelector('.measure-select');
+                measureSelect.innerHTML = '<option value="g">g</option>';
+                if (measuresDatabase[foodName]) {
+                    Object.keys(measuresDatabase[foodName]).forEach(measure => {
+                        measureSelect.innerHTML += `<option value="${measure}">${measure}</option>`;
+                    });
+                }
+                measureSelect.value = selectedMeasure;
+                updateGrams(row);
+            };
+
+            const updateGrams = (row) => {
+                const foodName = row.querySelector('.food-input').value;
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const measure = row.querySelector('.measure-select').value;
+                const gramsInput = row.querySelector('.grams-input');
+                let grams = 0;
+                if (measure === 'g') grams = qty;
+                else if (measuresDatabase[foodName]?.[measure]) grams = qty * measuresDatabase[foodName][measure];
+                gramsInput.value = grams.toFixed(1);
+                updateDietCalculations();
+            };
+
+            const updateDietCalculations = () => {
+                const totals = {};
+                const dri = driDatabase.default;
+                
+                document.querySelectorAll('.diet-row').forEach(row => {
+                    const foodName = row.querySelector('.food-input').value;
+                    const grams = parseFloat(row.querySelector('.grams-input').value) || 0;
+                    const foodInfo = foodDatabase[foodName];
+
+                    if (foodInfo && grams > 0) {
+                        for (const nutrient in foodInfo) {
+                            if (!totals[nutrient]) totals[nutrient] = 0;
+                            totals[nutrient] += (foodInfo[nutrient] / 100) * grams;
+                        }
+                    }
+                });
+                
+                const summaryTable = document.getElementById('diet-summary-table');
+                summaryTable.innerHTML = '';
+                const nutrientsToDisplay = {
+                    energia_kcal: 'Energia (kcal)', proteina_g: 'Proteína (g)', lipideos_g: 'Lipídeos (g)',
+                    carboidrato_g: 'Carboidratos (g)', fibra_g: 'Fibras (g)', calcio_mg: 'Cálcio (mg)',
+                    ferro_mg: 'Ferro (mg)', sodio_mg: 'Sódio (mg)', potassio_mg: 'Potássio (mg)'
+                };
+
+                for (const key in nutrientsToDisplay) {
+                    const total = totals[key] || 0;
+                    const recommendation = dri[key] || 0;
+                    const adequacy = recommendation > 0 ? (total / recommendation) * 100 : 0;
+                    let adequacyClass = adequacy < 90 ? 'adequacy-low' : (adequacy <= 110 ? 'adequacy-good' : 'adequacy-high');
+                    summaryTable.innerHTML += `
+                        <tr class="${adequacyClass}">
+                            <td class="p-2 font-medium">${nutrientsToDisplay[key]}</td> <td class="p-2">${total.toFixed(1)}</td>
+                            <td class="p-2">${recommendation > 0 ? recommendation.toFixed(1) : '-'}</td> <td class="p-2 font-bold">${adequacy > 0 ? adequacy.toFixed(0) + '%' : '-'}</td>
+                        </tr>`;
+                }
+            };
+            
+            const getBmiPercentile = (ageYears, bmi, gender) => {
+                const data = gender === 'masculino' ? percentileData.boys : percentileData.girls;
+                const ageData = data.reduce((prev, curr) => (Math.abs(curr.age - ageYears) < Math.abs(prev.age - ageYears) ? curr : prev));
+                if (bmi < ageData.p3) return { value: "< 3", class: "Baixo Peso" };
+                if (bmi < ageData.p15) return { value: "3-15", class: "Baixo Peso" };
+                if (bmi < ageData.p85) return { value: "15-85", class: "Peso Normal" };
+                if (bmi < ageData.p97) return { value: "85-97", class: "Sobrepeso" };
+                return { value: "> 97", class: "Obesidade" };
+            };
+
+            // --- Lógica Principal de Cálculo ---
+            const calculateAll = () => {
+                const [nome, sexo, idade, peso, altura, circAbdominal, dct, perimetroBraco, vetGoal] = 
+                    [getVal('nome'), getVal('sexo'), getNum('idade'), getNum('peso'), getNum('altura'), getNum('circunferencia_abdominal'), getNum('dct'), getNum('perimetro_braco'), getVal('vet-goal')];
+
+                if (!peso || !altura || !idade) {
+                    showNotification('Preencha Idade, Peso e Altura para calcular.', false);
+                    return;
+                }
+
+                const imc = peso / (altura * altura);
+                let imcClass = '', imcKey = 'normal';
+
+                if (idade > 0 && idade <= 19) {
+                    percentileCard.classList.remove('hidden');
+                    const percentile = getBmiPercentile(idade, imc, sexo);
+                    setHtml('percentile-value', `P${percentile.value}`);
+                    setHtml('percentile-class', percentile.class);
+                    imcClass = percentile.class;
+                    if (imcClass === "Baixo Peso") imcKey = 'magreza'; else if (imcClass === "Peso Normal") imcKey = 'normal';
+                    else if (imcClass === "Sobrepeso") imcKey = 'sobrepeso'; else if (imcClass === "Obesidade") imcKey = 'obesidade';
+                } else {
+                    percentileCard.classList.add('hidden');
+                    if (imc < 18.5) { imcClass = 'Magreza'; imcKey = 'magreza'; }
+                    else if (imc <= 24.9) { imcClass = 'Peso normal'; imcKey = 'normal'; }
+                    else if (imc <= 29.9) { imcClass = 'Sobrepeso'; imcKey = 'sobrepeso'; }
+                    else { imcClass = 'Obesidade'; imcKey = 'obesidade'; }
+                }
+                
+                const idealWeight = 21.7 * (altura * altura);
+                let rcqClass = 'Risco normal';
+                if (sexo === 'masculino' && circAbdominal >= 94) rcqClass = 'Risco aumentado';
+                if (sexo === 'feminino' && circAbdominal >= 80) rcqClass = 'Risco aumentado';
+                
+                const sexValue = sexo === 'masculino' ? 1 : 0;
+                const fatPercentage = 64.5 - (848 / imc) + (0.079 * idade) - (16.4 * sexValue) + (0.05 * sexValue * idade) + (39.0 * sexValue / imc);
+
+                let vetRange = [0, 0], vetGoalText = '';
+                if (vetGoal === 'manter') { vetRange = [25 * peso, 35 * peso]; vetGoalText = 'Manter Peso'; }
+                else if (vetGoal === 'perder') { vetRange = [20 * peso, 25 * peso]; vetGoalText = 'Perder Peso'; }
+                else if (vetGoal === 'ganhar') { vetRange = [30 * peso, 35 * peso]; vetGoalText = 'Ganhar Peso'; }
+
+                setHtml('report-name', `Paciente: ${nome || 'Não informado'}`);
+                setHtml('imc-value', imc.toFixed(2));
+                setHtml('imc-class', imcClass);
+                setHtml('ideal-weight', `${idealWeight.toFixed(2)} kg`);
+                setHtml('rcq-value', `${circAbdominal.toFixed(1)} cm`);
+                setHtml('rcq-class', rcqClass);
+                setHtml('fat-percentage', `${fatPercentage > 0 ? fatPercentage.toFixed(1) : 'N/A'}%`);
+                setHtml('vet-value', `${vetRange[0].toFixed(0)} - ${vetRange[1].toFixed(0)} kcal`);
+                setHtml('vet-goal-text', vetGoalText);
+                
+                document.getElementById('figure-image').src = images[sexo][imcKey];
+                setHtml('figure-caption', `Visualização: ${imcClass}`);
+
+                resultsContainer.classList.remove('hidden');
+                updateDietCalculations();
+            };
+
+            // --- Gerenciamento de Pacientes ---
+            const storageKey = 'nutriplus_patients_v4';
+            const getPatients = () => JSON.parse(localStorage.getItem(storageKey)) || [];
+            
+            const populatePatientList = () => {
+                const patients = getPatients();
+                patientListSelect.innerHTML = '<option value="">Selecione um paciente</option>';
+                patients.forEach(p => patientListSelect.innerHTML += `<option value="${p.id}">${p.nome}</option>`);
+            };
+
+            const clearForm = () => {
+                form.reset(); setVal('patient-id', '');
+                meals.forEach(meal => document.getElementById(`tbody-${meal.toLowerCase().replace('ç','c')}`).innerHTML = '');
+                resultsContainer.classList.add('hidden');
+                document.getElementById('lab-results').innerHTML = '';
+            };
+
+            savePatientBtn.addEventListener('click', () => {
+                const nome = getVal('nome');
+                if (!nome) { showNotification('O nome do paciente é obrigatório para salvar.', false); return; }
+                
+                const dietPlan = {};
+                meals.forEach(mealName => {
+                    const mealId = mealName.toLowerCase().replace('ç', 'c');
+                    dietPlan[mealId] = Array.from(document.querySelectorAll(`#tbody-${mealId} .diet-row`)).map(row => ({
+                        food: row.querySelector('.food-input').value, qty: row.querySelector('.qty-input').value,
+                        measure: row.querySelector('.measure-select').value, grams: row.querySelector('.grams-input').value
+                    }));
+                });
+                
+                const patientData = {
+                    id: getVal('patient-id') || Date.now().toString(), nome, sexo: getVal('sexo'), idade: getVal('idade'), peso: getVal('peso'),
+                    altura: getVal('altura'), circunferencia_abdominal: getVal('circunferencia_abdominal'), dct: getVal('dct'), dcb: getVal('dcb'),
+                    perimetro_braco: getVal('perimetro_braco'), 'vet-goal': getVal('vet-goal'), dietPlan
+                };
+
+                let patients = getPatients();
+                const existingIndex = patients.findIndex(p => p.id === patientData.id);
+                if (existingIndex > -1) patients[existingIndex] = patientData; else patients.push(patientData);
+                localStorage.setItem(storageKey, JSON.stringify(patients));
+                populatePatientList();
+                patientListSelect.value = patientData.id;
+                showNotification('Paciente salvo com sucesso!');
+            });
+
+            loadPatientBtn.addEventListener('click', () => {
+                const patientId = getVal('patient-list');
+                if (!patientId) { showNotification('Selecione um paciente para carregar.', false); return; }
+                const patient = getPatients().find(p => p.id === patientId);
+                if (patient) {
+                    Object.keys(patient).forEach(key => {
+                        if (key !== 'dietPlan' && key !== 'id') setVal(key, patient[key]);
+                    });
+                    setVal('patient-id', patient.id);
+                    
+                    meals.forEach(mealName => {
+                        const mealId = mealName.toLowerCase().replace('ç', 'c');
+                        document.getElementById(`tbody-${mealId}`).innerHTML = '';
+                        patient.dietPlan?.[mealId]?.forEach(foodItem => addFoodRow(mealId, foodItem));
+                    });
+                    calculateAll();
+                }
+            });
+
+            deletePatientBtn.addEventListener('click', () => {
+                const patientId = getVal('patient-list');
+                if (!patientId) { showNotification('Selecione um paciente para deletar.', false); return; }
+                let patients = getPatients().filter(p => p.id !== patientId);
+                localStorage.setItem(storageKey, JSON.stringify(patients));
+                populatePatientList();
+                clearForm();
+                showNotification('Paciente deletado.', true);
+            });
+            
+            newPatientBtn.addEventListener('click', clearForm);
+
+            // --- Lógica Laboratorial e Botões de Ação ---
+            const labReferences = {
+                'glicose': { min: 70, max: 99 }, 'colesterol total': { min: 0, max: 190 },
+                'triglicerídeos': { min: 0, max: 150 }, 'hdl': { min: 40, max: Infinity }, 'ldl': { min: 0, max: 130 }
+            };
+
+            document.getElementById('add-lab-btn').addEventListener('click', () => {
+                const labName = getVal('lab-name').toLowerCase().trim();
+                const labValue = getNum('lab-value');
+                if (!labName || !labValue) return;
+
+                let status = 'Normal', color = 'text-green-600', suggestion = '';
+                const ref = labReferences[labName];
+                if (ref) {
+                    if (labValue < ref.min) { status = 'Abaixo'; color = 'text-blue-600'; suggestion = labSuggestions[labName]?.low || ''; }
+                    if (labValue > ref.max) { status = 'Acima'; color = 'text-red-600'; suggestion = labSuggestions[labName]?.high || ''; }
+                }
+                const resultHtml = `<div><p><strong>${getVal('lab-name')}:</strong> ${labValue} - <span class="font-semibold ${color}">${status}</span></p>
+                    ${suggestion ? `<p class="text-xs text-blue-700 bg-blue-50 p-1 rounded mt-1"><strong>Sugestão:</strong> ${suggestion}</p>` : ''}</div>`;
+                document.getElementById('lab-results').innerHTML += resultHtml;
+                setVal('lab-name', ''); setVal('lab-value', '');
+            });
+            
+            const generatePdf = () => {
+                const { jsPDF } = window.jspdf;
+                const reportElement = document.getElementById('printable-area');
+                showNotification('Gerando PDF, por favor aguarde...', true);
+                html2canvas(reportElement, { scale: 2, useCORS: true, windowWidth: 1200 }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`relatorio-nutriplus-${getVal('nome') || 'paciente'}.pdf`);
+                });
+            };
+
+            document.getElementById('print-btn').addEventListener('click', () => window.print());
+            document.getElementById('whatsapp-btn').addEventListener('click', () => {
+                generatePdf();
+                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent("Olá! Segue o relatório nutricional em PDF.")}`, '_blank'); }, 1000);
+            });
+            document.getElementById('export-jpeg-btn').addEventListener('click', () => {
+                html2canvas(document.getElementById('printable-area'), { scale: 2, useCORS: true }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `relatorio-nutriplus-${getVal('nome') || 'paciente'}.jpeg`;
+                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                    link.click();
+                });
+            });
+
+            // --- Inicialização ---
+            calculateBtn.addEventListener('click', calculateAll);
+            populatePatientList();
+        });
+    </script>
+</body>
+</html>
+
