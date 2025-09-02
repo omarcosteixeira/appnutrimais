@@ -63,7 +63,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Coluna de Inserção de Dados -->
-            <div class="lg:col-span-1 space-y-6">
+            <div class="lg-col-span-1 space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
@@ -136,7 +136,8 @@
             <!-- Coluna de Resultados -->
             <div id="results-container" class="lg:col-span-2 hidden">
                 <div id="printable-area">
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <!-- PAGE 1: HEADER + MAIN CARDS -->
+                    <div id="pdf-page-1" class="bg-white p-6 rounded-xl shadow-lg">
                         <!-- Cabeçalho do Relatório -->
                         <div class="flex justify-between items-start">
                              <div>
@@ -170,21 +171,26 @@
                                 <p class="font-medium text-gray-600">Gallagher et al.</p>
                             </div>
                             <div class="result-card border-l-4 border-green-400">
-                                <h3 class="font-semibold text-gray-800">VET</h3>
-                                <p class="text-3xl font-bold text-primary" id="vet-value">-</p>
-                                <p class="font-medium text-gray-600" id="vet-goal-text">Manter Peso</p>
+                                <h3 class="font-semibold text-gray-800">VET (<span id="vet-goal-text">Manter</span>)</h3>
+                                <p class="font-medium text-gray-600">Faixa: <span id="vet-value">-</span></p>
+                                <div class="mt-2">
+                                    <label for="vet-input" class="text-sm font-medium text-gray-700">Meta (kcal):</label>
+                                    <input type="number" id="vet-input" class="w-full p-2 border border-gray-300 rounded-lg mt-1 focus:ring-2 focus:ring-secondary">
+                                </div>
                             </div>
                         </div>
-                        
-                        <!-- Resumo Visual e Laboratorial -->
-                        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="md:col-span-1 flex flex-col justify-center items-center">
+                    </div>
+
+                    <!-- PAGE 2: FIGURE + LABS -->
+                    <div id="pdf-page-2" class="mt-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-1 flex flex-col justify-center items-center bg-white p-6 rounded-xl shadow-lg">
                                 <div id="figure-container" class="relative w-full h-96 flex items-center justify-center">
                                     <img id="figure-image" src="https://placehold.co/300x400/e0e0e0/555?text=?" alt="Visualização Corporal">
                                 </div>
                                 <p class="text-center font-semibold text-gray-700 mt-2" id="figure-caption">Visualização Corporal</p>
                             </div>
-                            <div class="md:col-span-2 result-card border-l-4 border-purple-400">
+                            <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-lg result-card border-l-4 border-purple-400">
                                 <h3 class="font-semibold text-gray-800">Avaliação Laboratorial</h3>
                                 <div class="space-y-3 mt-4">
                                     <div class="flex items-center gap-2">
@@ -201,28 +207,30 @@
                         </div>
                     </div>
                     
-                    <!-- Seção de Plano Alimentar Avançado -->
-                    <div id="diet-plan-section" class="bg-white p-6 rounded-xl shadow-lg mt-8">
-                        <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3">Plano Alimentar Detalhado</h2>
-                        <div id="meals-container" class="space-y-8">
-                            <!-- Templates das refeições serão inseridos aqui -->
-                        </div>
-                        <div class="mt-8">
-                             <h3 class="text-xl font-semibold text-secondary mb-4 border-b pb-2">Resumo e Adequação Nutricional</h3>
-                             <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-gray-100">
-                                        <tr>
-                                            <th class="p-2">Nutriente</th>
-                                            <th class="p-2">Total no Plano</th>
-                                            <th class="p-2">Recomendado (DRI)</th>
-                                            <th class="p-2">% Adequação</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="diet-summary-table">
-                                        <!-- Linhas do resumo serão inseridas aqui -->
-                                    </tbody>
-                                </table>
+                    <!-- PAGE 3: DIET PLAN -->
+                    <div id="pdf-page-3" class="mt-8">
+                        <div id="diet-plan-section" class="bg-white p-6 rounded-xl shadow-lg">
+                            <h2 class="text-2xl font-semibold text-secondary mb-6 border-b pb-3">Plano Alimentar Detalhado</h2>
+                            <div id="meals-container" class="space-y-8">
+                                <!-- Templates das refeições serão inseridos aqui -->
+                            </div>
+                            <div class="mt-8">
+                                 <h3 class="text-xl font-semibold text-secondary mb-4 border-b pb-2">Resumo e Adequação Nutricional</h3>
+                                 <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="p-2">Nutriente</th>
+                                                <th class="p-2">Total no Plano</th>
+                                                <th class="p-2">Recomendado (DRI/Meta)</th>
+                                                <th class="p-2">% Adequação</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="diet-summary-table">
+                                            <!-- Linhas do resumo serão inseridas aqui -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -325,6 +333,7 @@
             const resultsContainer = document.getElementById('results-container');
             const notification = document.getElementById('notification');
             const percentileCard = document.getElementById('percentile-card');
+            const vetInput = document.getElementById('vet-input');
             
             const getVal = id => document.getElementById(id)?.value ?? '';
             const getNum = id => parseFloat(document.getElementById(id)?.value) || 0;
@@ -437,8 +446,9 @@
             };
 
             const updateDietCalculations = () => {
-                const totals = {};
+                const totals = { energia_kcal: 0 };
                 const dri = driDatabase.default;
+                const targetVet = getNum('vet-input');
                 
                 document.querySelectorAll('.diet-row').forEach(row => {
                     const foodName = row.querySelector('.food-input').value;
@@ -455,8 +465,21 @@
                 
                 const summaryTable = document.getElementById('diet-summary-table');
                 summaryTable.innerHTML = '';
+
+                // Adequação do VET
+                const vetAdequacy = targetVet > 0 ? (totals.energia_kcal / targetVet) * 100 : 0;
+                let vetAdequacyClass = vetAdequacy < 90 ? 'adequacy-low' : (vetAdequacy <= 110 ? 'adequacy-good' : 'adequacy-high');
+                summaryTable.innerHTML += `
+                    <tr class="${vetAdequacyClass}">
+                        <td class="p-2 font-medium">Energia (kcal)</td>
+                        <td class="p-2">${totals.energia_kcal.toFixed(1)}</td>
+                        <td class="p-2">${targetVet.toFixed(1)}</td>
+                        <td class="p-2 font-bold">${vetAdequacy.toFixed(0)}%</td>
+                    </tr>
+                `;
+                
                 const nutrientsToDisplay = {
-                    energia_kcal: 'Energia (kcal)', proteina_g: 'Proteína (g)', lipideos_g: 'Lipídeos (g)',
+                    proteina_g: 'Proteína (g)', lipideos_g: 'Lipídeos (g)',
                     carboidrato_g: 'Carboidratos (g)', fibra_g: 'Fibras (g)', calcio_mg: 'Cálcio (mg)',
                     ferro_mg: 'Ferro (mg)', sodio_mg: 'Sódio (mg)', potassio_mg: 'Potássio (mg)'
                 };
@@ -535,6 +558,8 @@
                 setHtml('fat-percentage', `${fatPercentage > 0 ? fatPercentage.toFixed(1) : 'N/A'}%`);
                 setHtml('vet-value', `${vetRange[0].toFixed(0)} - ${vetRange[1].toFixed(0)} kcal`);
                 setHtml('vet-goal-text', vetGoalText);
+                const vetAverage = (vetRange[0] + vetRange[1]) / 2;
+                setVal('vet-input', vetAverage.toFixed(0));
                 
                 document.getElementById('figure-image').src = images[sexo][imcKey];
                 setHtml('figure-caption', `Visualização: ${imcClass}`);
@@ -544,7 +569,7 @@
             };
 
             // --- Gerenciamento de Pacientes ---
-            const storageKey = 'nutriplus_patients_v4';
+            const storageKey = 'nutriplus_patients_v5';
             const getPatients = () => JSON.parse(localStorage.getItem(storageKey)) || [];
             
             const populatePatientList = () => {
@@ -554,7 +579,7 @@
             };
 
             const clearForm = () => {
-                form.reset(); setVal('patient-id', '');
+                form.reset(); setVal('patient-id', ''); setVal('vet-input', '');
                 meals.forEach(meal => document.getElementById(`tbody-${meal.toLowerCase().replace('ç','c')}`).innerHTML = '');
                 resultsContainer.classList.add('hidden');
                 document.getElementById('lab-results').innerHTML = '';
@@ -576,7 +601,7 @@
                 const patientData = {
                     id: getVal('patient-id') || Date.now().toString(), nome, sexo: getVal('sexo'), idade: getVal('idade'), peso: getVal('peso'),
                     altura: getVal('altura'), circunferencia_abdominal: getVal('circunferencia_abdominal'), dct: getVal('dct'), dcb: getVal('dcb'),
-                    perimetro_braco: getVal('perimetro_braco'), 'vet-goal': getVal('vet-goal'), dietPlan
+                    perimetro_braco: getVal('perimetro_braco'), 'vet-goal': getVal('vet-goal'), vet_input: getVal('vet-input'), dietPlan
                 };
 
                 let patients = getPatients();
@@ -642,18 +667,43 @@
                 setVal('lab-name', ''); setVal('lab-value', '');
             });
             
-            const generatePdf = () => {
+            const generatePdf = async () => {
                 const { jsPDF } = window.jspdf;
-                const reportElement = document.getElementById('printable-area');
-                showNotification('Gerando PDF, por favor aguarde...', true);
-                html2canvas(reportElement, { scale: 2, useCORS: true, windowWidth: 1200 }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                showNotification('Gerando PDF multipágina...', true);
+
+                const addCanvasToPdf = (canvas, pdfInstance) => {
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    // Calculate dimensions to fit width, maintaining aspect ratio
+                    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                    pdfInstance.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+                };
+
+                // Elements for each page
+                const page1Element = document.getElementById('pdf-page-1');
+                const page2Element = document.getElementById('pdf-page-2');
+                const page3Element = document.getElementById('pdf-page-3');
+
+                try {
+                    // --- Capture and add each page ---
+                    const canvas1 = await html2canvas(page1Element, { scale: 2, useCORS: true, windowWidth: 1200 });
+                    addCanvasToPdf(canvas1, pdf);
+
+                    pdf.addPage();
+                    const canvas2 = await html2canvas(page2Element, { scale: 2, useCORS: true, windowWidth: 1200 });
+                    addCanvasToPdf(canvas2, pdf);
+
+                    pdf.addPage();
+                    const canvas3 = await html2canvas(page3Element, { scale: 2, useCORS: true, windowWidth: 1200 });
+                    addCanvasToPdf(canvas3, pdf);
+
                     pdf.save(`relatorio-nutriplus-${getVal('nome') || 'paciente'}.pdf`);
-                });
+                    showNotification('PDF gerado com sucesso!', true);
+                } catch (error) {
+                    console.error("Erro ao gerar PDF:", error);
+                    showNotification('Falha ao gerar o PDF.', false);
+                }
             };
 
             document.getElementById('print-btn').addEventListener('click', () => window.print());
@@ -672,6 +722,7 @@
 
             // --- Inicialização ---
             calculateBtn.addEventListener('click', calculateAll);
+            vetInput.addEventListener('input', updateDietCalculations);
             populatePatientList();
         });
     </script>
